@@ -54,39 +54,22 @@ class AbuAguaApp(MDApp):
         return sm
 
     def on_start(self):
-        # Flatten systems for the dropdown
+        # Populate the list
         self.flattened_infra = []
         for sys_name, infra_list in sistemas.SISTEMAS.items():
             for infra_name in infra_list:
                 full_name = f"{sys_name} - {infra_name}"
                 self.flattened_infra.append(full_name)
         
-        # Setup Dropdown
-        # We attach it to the text field
-        menu_items = [
-            {
-                "viewclass": "InfraItem",
-                "text": i,
-                "on_release": lambda x=i: self.set_infra(x),
-            } for i in self.flattened_infra
-        ]
+        # Get list widget
+        config_screen = self.root.get_screen('config')
+        infra_list_widget = config_screen.ids.infra_list_view
         
-        # We need the widget instance to attach the menu
-        # We will retrieve it in a safe way if feasible, or bind later?
-        # In on_start, screen ids are available
-        field = self.root.get_screen('config').ids.infra_field
-        
-        # Calculate width_mult to fit screen width roughly
-        # 1 unit ~ 56dp
-        # Window.width / 56
-        w_mult = (Window.width / dp(56)) * 0.90
-        
-        self.menu = MDDropdownMenu(
-            caller=field,
-            items=menu_items,
-            width_mult=w_mult,
-            max_height=dp(300),
-        )
+        for infra in self.flattened_infra:
+            item = InfraItem(text=infra)
+            # Bind release event
+            item.bind(on_release=lambda x, i=infra: self.set_infra(i))
+            infra_list_widget.add_widget(item)
 
         # Check existing config
         if self.store.exists('config'):
@@ -97,12 +80,8 @@ class AbuAguaApp(MDApp):
         else:
             self.root.current = 'config'
 
-    def open_menu(self):
-        self.menu.open()
-
     def set_infra(self, text_item):
         self.selected_infra_full = text_item
-        self.menu.dismiss()
         # Save
         self.store.put('config', infra=text_item)
         # Go to Dashboard and refresh
@@ -189,10 +168,6 @@ class AbuAguaApp(MDApp):
                 # Convert to local time (system time)
                 dt_local = dt.astimezone()
                 # Format: 18-12-2025 9:00 AM
-                # %-I is platform dependent (linux OK), but let's use %I and lstrip '0' manually if needed
-                # User asked for "9:00 AM" not "09:00 AM", but standard %I is safer cross-platform.
-                # Actually, standard %I gives 09. safe way for 9 is to strip or use %I.
-                # Let's simple format first.
                 friendly_date = dt_local.strftime("%d-%m-%Y %I:%M %p")
             except Exception as e:
                 friendly_date = pub_date # Fallback
@@ -210,48 +185,26 @@ Builder.load_string('''
     MDBoxLayout:
         orientation: 'vertical'
         padding: dp(20)
-        spacing: dp(30)
+        spacing: dp(10)
         
         MDLabel:
-            text: "Configuración Inicial"
+            text: "Seleccione su infraestructura"
             halign: "center"
             theme_text_color: "Primary"
-            font_style: "H4"
+            font_style: "H5"
             size_hint_y: None
-            height: dp(80)
-
-        MDLabel:
-            text: "Seleccione su infraestructura:"
-            halign: "center"
-            theme_text_color: "Secondary"
-            font_style: "H6"
-            size_hint_y: None
-            height: dp(40)
-
-        # Using a text field as a trigger is better for visibility
-        MDTextField:
-            id: infra_field
-            text: app.selected_infra_full
-            hint_text: "Toque aquí para abrir la lista"
-            pos_hint: {'center_x': .5}
-            size_hint_x: 0.9
-            readonly: True
-            mode: "rectangle"
-            icon_right: "arrow-drop-down"
-            icon_right_color: app.theme_cls.primary_color
-            font_size: "20sp"
-            on_focus: if self.focus: app.open_menu()
-
-        MDRaisedButton:
-            text: "CONFIRMAR"
-            font_size: "20sp"
-            pos_hint: {'center_x': .5}
-            size_hint_x: 0.8
             height: dp(60)
-            on_release: if app.selected_infra_full: app.set_infra(app.selected_infra_full)
 
-        Widget:
-
+        # List container
+        MDCard:
+            orientation: 'vertical'
+            padding: 0
+            radius: [10]
+            elevation: 2
+            
+            ScrollView:
+                MDList:
+                    id: infra_list_view
 <DashboardScreen>:
     MDBoxLayout:
         orientation: 'vertical'
