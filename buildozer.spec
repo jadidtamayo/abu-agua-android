@@ -15,6 +15,9 @@ source.dir = .
 # (str) Source filename (default: main.py)
 source.include_exts = py,png,jpg,kv,atlas,json,txt
 
+# (str) Application versioning (method 1)
+version = 0.1
+
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
 requirements = python3,kivy,kivymd==1.1.1,requests,beautifulsoup4,urllib3,chardet,idna,certifi
