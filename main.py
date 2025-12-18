@@ -45,7 +45,8 @@ class AbuAguaApp(MDApp):
         
         # Persistence
         # Store in user data dir
-        self.store = JsonStore('app_config.json')
+        store_path = os.path.join(self.user_data_dir, 'app_config.json')
+        self.store = JsonStore(store_path)
         
         sm = MDScreenManager()
         sm.add_widget(ConfigScreen(name='config'))
@@ -127,11 +128,32 @@ class AbuAguaApp(MDApp):
 
             system_part, infra_part = self.selected_infra_full.split(" - ", 1)
             
+            # Helper for flexible matching
+            def normalize_name(name):
+                # Lowercase, remove "de ", "del ", strip spaces
+                n = name.lower()
+                n = n.replace(" de ", " ")
+                n = n.replace(" del ", " ")
+                return n.strip()
+
+            target_infra_norm = normalize_name(infra_part)
+            
             msgs = telegram_service.get_last_messages(n=15)
             found = False
             
+            # Filter phrase
+            filter_phrase = "estimado cliente a continuacion la distribucion del servicio de agua para la jornada"
+            
             for msg_data in reversed(msgs):
                 text = msg_data['text']
+                
+                # Check filter phrase (flexible spaces/case)
+                clean_text_check = text.lower().replace("\n", " ").replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u")
+                filter_phrase_norm = filter_phrase.replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u")
+
+                if filter_phrase_norm not in clean_text_check:
+                     continue
+                
                 pub_date = msg_data['datetime']
                 
                 parsed = message_parser.parse_water_distribution(text)
@@ -139,8 +161,9 @@ class AbuAguaApp(MDApp):
                 
                 for seg in parsed.get("segments", []):
                     seg_infra = seg.get("infraestructura", "")
+                    seg_infra_norm = normalize_name(seg_infra)
                     
-                    if infra_part.lower() in seg_infra.lower() or seg_infra.lower() in infra_part.lower():
+                    if target_infra_norm in seg_infra_norm or seg_infra_norm in target_infra_norm:
                         found = True
                         original_note = seg.get("nota_original", "")
                         text_display = f"Infraestructura: {seg_infra}\n\nNota: {original_note}"
@@ -151,7 +174,8 @@ class AbuAguaApp(MDApp):
                 Clock.schedule_once(lambda dt: self.update_ui_error("No se encontró información reciente para esta infraestructura."))
 
         except Exception as e:
-            Clock.schedule_once(lambda dt: self.update_ui_error(f"Error: {str(e)}"))
+            err_msg = str(e)
+            Clock.schedule_once(lambda dt: self.update_ui_error(f"Error: {err_msg}"))
 
     def update_ui_success(self, text, pub_date, text_date):
         screen = self.root.get_screen('dashboard')
