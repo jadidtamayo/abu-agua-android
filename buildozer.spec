@@ -20,7 +20,7 @@ version = 0.1
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy,kivymd==1.1.1,requests,beautifulsoup4,urllib3,chardet,idna,certifi
+requirements = python3,kivy,kivymd,requests,beautifulsoup4,urllib3,chardet,idna,certifi
 
 # (str) Presplash of the application
 # presplash.filename = %(source.dir)s/data/presplash.png
@@ -39,7 +39,7 @@ fullscreen = 0
 android.permissions = INTERNET
 
 # (int) Target Android API, should be as high as possible.
-android.api = 31
+android.api = 30
 
 # (int) Minimum API your APK will support.
 android.minapi = 21
